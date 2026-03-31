@@ -98,25 +98,36 @@ class PlanningAgent:
 
         avoid_block = json.dumps(avoid_titles, ensure_ascii=False) if avoid_titles else "[]"
 
-        build_on_count = round(needed * 0.6)
+        build_on_count = round(needed * 0.3)
         new_topic_count = needed - build_on_count
 
-        prompt = "Here are the recent videos from a YouTube Shorts astrophysics channel (Spanish), sorted by views:\n\n"
+        # Extract overused themes from published titles so the LLM knows what to avoid
+        overused = _detect_overused_themes(avoid_titles)
+        overused_block = ", ".join(overused) if overused else "none"
+
+        prompt = (
+            "You are planning content for a YouTube Shorts science channel in Spanish.\n"
+            "The channel covers ALL of science — not just astrophysics.\n\n"
+        )
+
         if perf_block:
-            prompt += f"{perf_block}\n\n"
-        else:
-            prompt += "(No performance data yet — use your best judgment for the channel niche below.)\n\n"
+            prompt += f"Top-performing videos (sorted by views):\n{perf_block}\n\n"
 
         prompt += (
-            f"Already published titles to AVOID repeating: {avoid_block}\n\n"
-            f"Generate exactly {needed} video ideas in Spanish, split as follows:\n\n"
-            f"- {build_on_count} ideas that BUILD ON or GO DEEPER into topics from the best-performing videos above. "
-            "These should explore a related angle, a follow-up question, a deeper aspect, or a surprising extension "
-            "of a topic that already resonated with the audience. They should feel like natural sequels or companions "
-            "to existing content — but with a fresh angle, not a repeat.\n\n"
-            f"- {new_topic_count} ideas on COMPLETELY NEW topics not covered in any of the videos above. "
-            "These should expand the channel's range while staying within astrophysics/cosmology/physics.\n\n"
-            "Mark build-on ideas with `\"is_exploratory\": false` and new-topic ideas with `\"is_exploratory\": true`.\n\n"
+            f"Already published titles (DO NOT repeat these themes): {avoid_block}\n\n"
+            f"⛔ BANNED — do NOT generate ideas about these overused themes: {overused_block}\n"
+            f"Any idea touching a banned theme will be rejected. Pick completely different subjects.\n\n"
+            f"Generate exactly {needed} video ideas in Spanish.\n\n"
+            "DIVERSITY RULES — mandatory:\n"
+            f"- The {needed} ideas must span AT LEAST 4 different science domains from this list:\n"
+            "  astrophysics, quantum physics, particle physics, biology, neuroscience, chemistry,\n"
+            "  geology/earth science, mathematics, technology/engineering, paleontology, medicine, ecology\n"
+            "- No more than 2 ideas from any single domain\n"
+            "- Prefer unexpected, counterintuitive, or surprising angles over obvious ones\n\n"
+            f"Split as follows:\n"
+            f"- {build_on_count} ideas that GO DEEPER on a top-performing topic (fresh angle only, not a repeat)\n"
+            f"- {new_topic_count} ideas on topics NOT covered before, spread across different domains\n\n"
+            "Mark build-on ideas with `\"is_exploratory\": false`, new topics with `\"is_exploratory\": true`.\n\n"
             "Return a JSON array where each element has:\n"
             '  "title_concept": string (catchy Spanish title, max 60 chars)\n'
             '  "topic": string (specific subject, 2-5 words, Spanish)\n'
@@ -132,9 +143,36 @@ class PlanningAgent:
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.85,
-                max_output_tokens=1024,
+                temperature=1.1,
+                max_output_tokens=2048,
             ),
         )
         data = json.loads(response.text)
         return data if isinstance(data, list) else []
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+_THEME_KEYWORDS = {
+    "agujeros negros": ["agujero negro", "agujeros negros", "black hole"],
+    "materia oscura": ["materia oscura", "dark matter"],
+    "antimateria": ["antimateria", "antimatter"],
+    "luna": ["la luna", "luna desaparec", "luna se acerc"],
+    "tierra rotación": ["tierra dejara de girar", "tierra para", "tierra gir"],
+    "simulación": ["simulación", "simulacion", "simulation"],
+    "viajes en el tiempo": ["viajes en el tiempo", "viaje en el tiempo", "time travel"],
+    "vida extraterrestre": ["vida extraterrestre", "extraterrestre", "alien"],
+    "big bang": ["big bang", "antes del big bang"],
+    "entrelazamiento cuántico": ["entrelazamiento", "quantum entangl"],
+}
+
+def _detect_overused_themes(titles: list[str]) -> list[str]:
+    """Return theme names that appear 2+ times in the published titles list."""
+    from collections import Counter
+    counts: Counter = Counter()
+    titles_lower = [t.lower() for t in titles]
+    for theme, keywords in _THEME_KEYWORDS.items():
+        for title in titles_lower:
+            if any(kw in title for kw in keywords):
+                counts[theme] += 1
+    return [theme for theme, count in counts.items() if count >= 1]
