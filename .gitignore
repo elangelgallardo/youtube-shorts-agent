@@ -1,0 +1,39 @@
+# ── Secrets & credentials ─────────────────────────────────────────────────────
+.env
+.env.local
+credentials/*.json
+credentials/*.key
+credentials/*.pem
+!credentials/.gitignore
+
+# ── Python ────────────────────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+
+# ── Runtime / generated ───────────────────────────────────────────────────────
+state.db
+transcript_cache.db
+*.db-shm
+*.db-wal
+workspace/
+logs/
+scheduler.pid
+*.pid
+
+# ── Temporary media ───────────────────────────────────────────────────────────
+final_videoTEMP_*.mp4
+*.tmp
+
+# ── OS & editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
