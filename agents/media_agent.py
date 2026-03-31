@@ -200,7 +200,7 @@ class MediaAgent:
         logger.debug("[%s] Generating image for scene %d", job.job_id, scene.scene_id)
 
         response = client.models.generate_content(
-            model=config.IMAGEN_MODEL,
+            model=config.IMAGE_GEN_MODEL,
             contents=scene.visual_prompt,
             config=types.GenerateContentConfig(
                 response_modalities=["IMAGE"],

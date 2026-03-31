@@ -22,7 +22,7 @@ GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", os.environ.get("GOOGLE
 # Models
 GEMINI_FLASH_MODEL = "gemini-2.5-flash-lite"
 GEMINI_PRO_MODEL = "gemini-3.1-pro-preview"
-IMAGEN_MODEL = "gemini-2.5-flash-image"
+IMAGE_GEN_MODEL = "gemini-2.5-flash-image"  # Nano Banana
 
 # ── Google Cloud TTS ───────────────────────────────────────────────────────────
 TTS_VOICE_NAME = os.environ.get("TTS_VOICE", "es-US-Chirp3-HD-Fenrir")

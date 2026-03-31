@@ -166,14 +166,14 @@ def main() -> None:
     all_ok = all_ok and ok
 
     # ── 7. Gemini image generation ───────────────────────────────────────
-    print("\n[7] Gemini image generation ({})".format(config.IMAGEN_MODEL))
+    print("\n[7] Gemini image generation ({})".format(config.IMAGE_GEN_MODEL))
     try:
         from google import genai as genai_new
         from google.genai import types
 
         client = genai_new.Client(api_key=config.GOOGLE_API_KEY)
         response = client.models.generate_content(
-            model=config.IMAGEN_MODEL,
+            model=config.IMAGE_GEN_MODEL,
             contents="A simple blue circle on a white background, minimalist",
             config=types.GenerateContentConfig(
                 response_modalities=["IMAGE"],
@@ -183,7 +183,7 @@ def main() -> None:
             part.inline_data is not None
             for part in response.candidates[0].content.parts
         )
-        ok = check(has_image, f"Image generation works ({config.IMAGEN_MODEL})", "No image returned")
+        ok = check(has_image, f"Image generation works ({config.IMAGE_GEN_MODEL})", "No image returned")
     except Exception as exc:
         ok = check(False, "", f"Image generation failed: {exc}")
     all_ok = all_ok and ok

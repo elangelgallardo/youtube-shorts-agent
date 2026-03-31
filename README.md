@@ -18,7 +18,7 @@ UploadAgent ← AssemblyAgent ← MediaAgent ←──────────�
 | 2 | **PlanningAgent** | Gemini generates 10 video ideas — 60% building on top performers, 40% fresh topics |
 | 3 | **ResearchAgent** | Gemini + Google Search grounding gathers data-backed facts per topic |
 | 4 | **ScriptAgent** | Gemini writes a 20-scene ~72s script in plain language (ELI12 style) |
-| 5 | **MediaAgent** | Google Cloud TTS narration + Imagen image per scene + optional Veo 3 hook clip |
+| 5 | **MediaAgent** | Google Cloud TTS narration + Gemini 2.5 Flash Image (Nano Banana) per scene + optional Veo 3 hook clip |
 | 6 | **AssemblyAgent** | FFmpeg composes Ken Burns slideshow with burned-in subtitles + background music |
 | 7 | **UploadAgent** | Uploads to YouTube with LLM-generated title, description, and tags |
 
@@ -27,7 +27,7 @@ UploadAgent ← AssemblyAgent ← MediaAgent ←──────────�
 | Service | Purpose |
 |---------|---------|
 | Gemini 2.5 Flash Lite | Planning, research, metadata generation |
-| Gemini 2.5 Flash Image (Imagen) | 9:16 scene image generation |
+| Gemini 2.5 Flash Image (Nano Banana) | 9:16 scene image generation |
 | Veo 3 (`veo-3.0-generate-001`) | Optional cinematic hook clip for scene 0 |
 | Google Cloud TTS Chirp3-HD | High-quality neural voice narration |
 | YouTube Data API v3 | Video upload + metadata patch |
