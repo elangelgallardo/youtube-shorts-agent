@@ -70,10 +70,10 @@ class AssemblyAgent:
             fps=config.VIDEO_FPS,
             codec="libx264",
             audio_codec="aac",
-            preset="medium",
+            preset="fast",
             threads=4,
             logger=None,
-            ffmpeg_params=["-crf", "18", "-pix_fmt", "yuv420p"],
+            ffmpeg_params=["-crf", "22", "-pix_fmt", "yuv420p"],
             temp_audiofile=str(ws / "temp_audio.m4a"),
         )
 

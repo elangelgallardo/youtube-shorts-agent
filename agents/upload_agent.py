@@ -130,8 +130,8 @@ class UploadAgent:
                 "description": metadata.description,
                 "tags": metadata.tags,
                 "categoryId": metadata.category_id,
-                "defaultLanguage": "en",
-                "defaultAudioLanguage": "en",
+                "defaultLanguage": config.TTS_LANGUAGE_CODE.split("-")[0],
+                "defaultAudioLanguage": config.TTS_LANGUAGE_CODE.split("-")[0],
             },
             "status": {
                 "privacyStatus": metadata.privacy_status,

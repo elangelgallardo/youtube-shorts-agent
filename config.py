@@ -55,12 +55,12 @@ ANALYTICS_TOP_N_VIDEOS = 20
 
 # Script / video dimensions
 TARGET_DURATION_S = 72       # desired audio output in seconds
-WORDS_PER_MINUTE = 173       # measured actual rate for es-US-Studio-B at 1.25x speed
+WORDS_PER_MINUTE = 140       # measured actual rate for es-US-Chirp3-HD-Fenrir at 1.0x speed
 SCRIPT_WORDS_OVERSHOOT = 1.0
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 VIDEO_FPS = 30
-SCENES_PER_VIDEO = 20
+SCENES_PER_VIDEO = 10
 
 # Upload stagger (UTC hours for the 5 daily uploads)
 _raw_hours = os.environ.get("UPLOAD_HOURS", "8,11,13,16,19")
