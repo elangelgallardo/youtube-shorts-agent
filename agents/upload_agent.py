@@ -40,6 +40,10 @@ class UploadAgent:
             youtube_video_id=result.youtube_video_id,
         )
 
+        # Upload thumbnail if available
+        if job.video.thumbnail_path and Path(job.video.thumbnail_path).exists():
+            self._upload_thumbnail(result.youtube_video_id, Path(job.video.thumbnail_path), job.job_id)
+
         from utils.cost_tracker import format_cost_report, save_costs
         logger.info("[%s] Uploaded: %s", job.job_id, result.youtube_url)
         logger.info("[%s] %s", job.job_id, format_cost_report(job))
@@ -167,6 +171,16 @@ class UploadAgent:
             upload_time=datetime.utcnow().isoformat(),
             metadata=metadata,
         )
+
+
+    def _upload_thumbnail(self, video_id: str, thumb_path: Path, job_id: str) -> None:
+        try:
+            youtube = build_youtube_client()
+            media = MediaFileUpload(str(thumb_path), mimetype="image/jpeg")
+            youtube.thumbnails().set(videoId=video_id, media_body=media).execute()
+            logger.info("[%s] Thumbnail uploaded for video %s", job_id, video_id)
+        except Exception as e:
+            logger.warning("[%s] Thumbnail upload failed: %s", job_id, e)
 
 
 def _slug(text: str) -> str:

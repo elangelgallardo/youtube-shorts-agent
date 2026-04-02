@@ -1,12 +1,11 @@
 """
-PlanningAgent — uses Gemini to generate 5 VideoPlan objects for today.
+PlanningAgent — uses Gemini to generate VideoPlan objects for today.
 
-Mix: 4 analytics-driven topics + 1 exploratory (new direction).
-Deduplication is enforced against published_topics in the state store.
+Broad science channel in the style of StarTalk: physics, cosmology, biology,
+technology, history of science, and deep questions about nature — all in Spanish.
 """
 import json
 import logging
-from datetime import datetime
 
 from google import genai
 from google.genai import types
@@ -79,9 +78,17 @@ class PlanningAgent:
         already_have: int,
     ) -> list[dict]:
         needed = config.VIDEOS_PER_DAY - already_have
-        exploratory_count = max(1, needed // 5)
 
-        # Build performance table from real metrics if available, else top topics
+        avoid_block = json.dumps(avoid_titles, ensure_ascii=False) if avoid_titles else "[]"
+
+        prompt = (
+            "You are planning content for a science YouTube Shorts channel in Spanish, "
+            "in the spirit of StarTalk with Neil deGrasse Tyson: broad, curious, accessible, "
+            "and genuinely fascinating. The channel covers physics, cosmology, astrophysics, "
+            "biology, neuroscience, chemistry, technology, history of science, and deep questions "
+            "about the nature of reality — anything that makes people say 'I never thought about that'.\n\n"
+        )
+
         if analytics.raw_metrics:
             perf_rows = [
                 {
@@ -93,41 +100,19 @@ class PlanningAgent:
                 for m in sorted(analytics.raw_metrics, key=lambda m: m.views, reverse=True)[:10]
             ]
             perf_block = json.dumps(perf_rows, ensure_ascii=False, indent=2)
-        else:
-            perf_block = None
-
-        avoid_block = json.dumps(avoid_titles, ensure_ascii=False) if avoid_titles else "[]"
-
-        build_on_count = round(needed * 0.3)
-        new_topic_count = needed - build_on_count
-
-        # Extract overused themes from published titles so the LLM knows what to avoid
-        overused = _detect_overused_themes(avoid_titles)
-        overused_block = ", ".join(overused) if overused else "none"
-
-        prompt = (
-            "You are planning content for a YouTube Shorts science channel in Spanish.\n"
-            "The channel covers ALL of science — not just astrophysics.\n\n"
-        )
-
-        if perf_block:
-            prompt += f"Top-performing videos (sorted by views):\n{perf_block}\n\n"
+            prompt += (
+                f"Channel performance data (for context only — use as inspiration, not as a constraint):\n"
+                f"{perf_block}\n\n"
+            )
 
         prompt += (
-            f"Already published titles (DO NOT repeat these themes): {avoid_block}\n\n"
-            f"⛔ BANNED — do NOT generate ideas about these overused themes: {overused_block}\n"
-            f"Any idea touching a banned theme will be rejected. Pick completely different subjects.\n\n"
+            f"Already published titles (avoid repeating the same topic):\n{avoid_block}\n\n"
             f"Generate exactly {needed} video ideas in Spanish.\n\n"
-            "DIVERSITY RULES — mandatory:\n"
-            f"- The {needed} ideas must span AT LEAST 4 different science domains from this list:\n"
-            "  astrophysics, quantum physics, particle physics, biology, neuroscience, chemistry,\n"
-            "  geology/earth science, mathematics, technology/engineering, paleontology, medicine, ecology\n"
-            "- No more than 2 ideas from any single domain\n"
-            "- Prefer unexpected, counterintuitive, or surprising angles over obvious ones\n\n"
-            f"Split as follows:\n"
-            f"- {build_on_count} ideas that GO DEEPER on a top-performing topic (fresh angle only, not a repeat)\n"
-            f"- {new_topic_count} ideas on topics NOT covered before, spread across different domains\n\n"
-            "Mark build-on ideas with `\"is_exploratory\": false`, new topics with `\"is_exploratory\": true`.\n\n"
+            "GUIDELINES:\n"
+            "- Span multiple science disciplines — don't cluster around one field\n"
+            "- Favor counterintuitive facts, surprising comparisons, and 'what-if' questions\n"
+            "- Each idea should feel like something worth stopping the scroll for\n"
+            "- Prefer specific, concrete angles over broad overviews\n\n"
             "Return a JSON array where each element has:\n"
             '  "title_concept": string (catchy Spanish title, max 60 chars)\n'
             '  "topic": string (specific subject, 2-5 words, Spanish)\n'
@@ -149,30 +134,3 @@ class PlanningAgent:
         )
         data = json.loads(response.text)
         return data if isinstance(data, list) else []
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-_THEME_KEYWORDS = {
-    "agujeros negros": ["agujero negro", "agujeros negros", "black hole"],
-    "materia oscura": ["materia oscura", "dark matter"],
-    "antimateria": ["antimateria", "antimatter"],
-    "luna": ["la luna", "luna desaparec", "luna se acerc"],
-    "tierra rotación": ["tierra dejara de girar", "tierra para", "tierra gir"],
-    "simulación": ["simulación", "simulacion", "simulation"],
-    "viajes en el tiempo": ["viajes en el tiempo", "viaje en el tiempo", "time travel"],
-    "vida extraterrestre": ["vida extraterrestre", "extraterrestre", "alien"],
-    "big bang": ["big bang", "antes del big bang"],
-    "entrelazamiento cuántico": ["entrelazamiento", "quantum entangl"],
-}
-
-def _detect_overused_themes(titles: list[str]) -> list[str]:
-    """Return theme names that appear 2+ times in the published titles list."""
-    from collections import Counter
-    counts: Counter = Counter()
-    titles_lower = [t.lower() for t in titles]
-    for theme, keywords in _THEME_KEYWORDS.items():
-        for title in titles_lower:
-            if any(kw in title for kw in keywords):
-                counts[theme] += 1
-    return [theme for theme, count in counts.items() if count >= 1]

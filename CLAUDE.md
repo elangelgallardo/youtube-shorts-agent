@@ -12,6 +12,8 @@ Use `.venv/bin/python` for all Python commands.
 ## Workflow
 The user requests video ideas interactively. Use `state_store.save_pending_plans()` to cache the list when showing ideas, and `load_pending_plans()` to retrieve the correct plan when the user picks a number.
 
+**ALWAYS use `create_job(plan, use_veo=True/False)` from `utils.state_store` when creating a job interactively** — never `VideoJob()` directly. This saves to DB immediately with a full UUID, preventing orphaned workspace folders with truncated IDs.
+
 ## Key paths
 - Workspace jobs: `workspace/jobs/<job_id>/`
 - Final video: `workspace/jobs/<job_id>/final_video.mp4`

@@ -88,6 +88,13 @@ def load_job(job_id: str) -> Optional[VideoJob]:
         ).fetchone()
     if row:
         return VideoJob.from_json(row["data_json"])
+    # Fallback: partial match (e.g. truncated UUIDs used in older sessions)
+    with _connect() as conn:
+        row = conn.execute(
+            "SELECT data_json FROM video_jobs WHERE job_id LIKE ?", (f"{job_id}%",)
+        ).fetchone()
+    if row:
+        return VideoJob.from_json(row["data_json"])
     return None
 
 
@@ -231,6 +238,23 @@ def clear_pending_plans() -> None:
     with _connect() as conn:
         conn.execute("DELETE FROM pending_plans")
         conn.commit()
+
+
+# ── Job creation ────────────────────────────────────────────────────────────
+
+def create_job(plan, use_veo: bool = True) -> "VideoJob":
+    """Create a VideoJob from a VideoPlan, save it to DB immediately, and return it.
+
+    Always use this instead of VideoJob() directly for interactive sessions —
+    it guarantees the job lands in the DB with a full UUID before any agent runs.
+    """
+    from models.video_job import VideoJob
+    job = VideoJob()
+    job.plan = plan
+    job.use_veo = use_veo
+    save_job(job)
+    logger.info("Created job %s: %r", job.job_id, plan.title_concept)
+    return job
 
 
 # ── Cleanup ─────────────────────────────────────────────────────────────────

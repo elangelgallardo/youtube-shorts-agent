@@ -13,7 +13,8 @@ STATE_DB_PATH = BASE_DIR / "state.db"
 ASSETS_DIR = BASE_DIR / "assets"
 
 # ── Audio mix ─────────────────────────────────────────────────────────────────
-BG_MUSIC_VOLUME = 0.02  # background music volume relative to narration (2%)
+BG_MUSIC_VOLUME = 0.12      # background music volume relative to narration (12%)
+TTS_LEADING_PAUSE_S = 1.0   # natural silence baked into TTS audio before narration starts
 
 # ── Google AI ──────────────────────────────────────────────────────────────────
 GOOGLE_API_KEY = os.environ["GOOGLE_API_KEY"]
@@ -55,7 +56,7 @@ ANALYTICS_TOP_N_VIDEOS = 20
 
 # Script / video dimensions
 TARGET_DURATION_S = 72       # desired audio output in seconds
-WORDS_PER_MINUTE = 140       # measured actual rate for es-US-Chirp3-HD-Fenrir at 1.0x speed
+WORDS_PER_MINUTE = 180       # measured actual rate for es-US-Chirp3-HD-Fenrir (185 WPM measured, 180 with break-tag buffer)
 SCRIPT_WORDS_OVERSHOOT = 1.0
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920

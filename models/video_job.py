@@ -110,6 +110,7 @@ class VideoAsset:
     raw_path: str = ""
     final_path: str = ""
     duration_s: float = 0.0
+    thumbnail_path: str = ""
 
 
 @dataclass

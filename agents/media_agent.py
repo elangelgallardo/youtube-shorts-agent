@@ -67,8 +67,8 @@ class MediaAgent:
         )
 
         from utils.ssml_builder import build_ssml
-        full_text = build_ssml(job.script.scenes)
-        synthesis_input = texttospeech.SynthesisInput(text=full_text)
+        ssml = build_ssml(job.script.scenes)
+        synthesis_input = texttospeech.SynthesisInput(ssml=ssml)
 
         voice = texttospeech.VoiceSelectionParams(
             language_code=config.TTS_LANGUAGE_CODE,
@@ -92,7 +92,7 @@ class MediaAgent:
         audio_path.write_bytes(response.audio_content)
 
         from utils.cost_tracker import record_tts
-        record_tts(job, len(full_text))
+        record_tts(job, len(ssml))
 
         from utils.ffmpeg_runner import probe_duration
         duration = probe_duration(audio_path)
@@ -131,7 +131,11 @@ class MediaAgent:
             srt_path.write_text("")
             return
 
-        script_words = [w for scene in scenes for w in scene.spoken_text.split()]
+        script_words = [
+            w for scene in scenes
+            for w in re.sub(r"<[^>]+>", "", scene.spoken_text).split()
+            if not (w.startswith("<") or w.endswith("/>") or w.endswith('">'))
+        ]
 
         def normalize(w):
             return re.sub(r"[^a-záéíóúüñ]", "", w.lower())
