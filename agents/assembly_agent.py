@@ -38,8 +38,8 @@ _MOTION_PRESETS = [
 _CROSSFADE_S    = 0.4
 _BG_FADE_S      = 1.5
 _VIDEO_FADE_S   = 0.5
-_START_DELAY_S  = 0.0   # natural pause is baked into TTS via SSML break (TTS_LEADING_PAUSE_S)
-_END_DELAY_S    = 3.0
+_START_DELAY_S  = 1.0   # narration starts 1s into the video; first clip plays immediately
+_END_DELAY_S    = 1.0   # last clip has extra footage; only 1s frozen frame needed
 _SUBTITLE_WORDS = 4
 _FONT_SIZE      = 77
 
@@ -57,9 +57,14 @@ class AssemblyAgent:
         for asset in job.images:
             if asset.veo_clip_path and Path(asset.veo_clip_path).exists():
                 scene_paths.append(Path(asset.veo_clip_path))
-            else:
+            elif asset.path and Path(asset.path).exists():
                 out = ws / f"tmp_scene_{asset.scene_id:03d}.mp4"
                 _render_ken_burns(asset, out)
+                scene_paths.append(out)
+            else:
+                # No clip and no image (e.g. Veo quota exceeded) — use solid color fallback
+                out = ws / f"tmp_scene_{asset.scene_id:03d}.mp4"
+                _render_color_fallback(asset, out)
                 scene_paths.append(out)
 
         # ── 2. Concat with crossfades ─────────────────────────────────────────
@@ -69,13 +74,16 @@ class AssemblyAgent:
         content_dur = _probe_duration(content_path)
 
         # ── 3. Mix audio ──────────────────────────────────────────────────────
-        total_dur = _START_DELAY_S + content_dur + _END_DELAY_S
+        # Narration starts at _START_DELAY_S regardless of workflow; first clip plays immediately.
+        start_delay = _START_DELAY_S
+        total_dur = content_dur + _END_DELAY_S
         audio_path = ws / "tmp_audio.aac"
         _mix_audio(
             Path(job.audio.audio_path),
             Path(config.ASSETS_DIR) / "background_music.mp3",
             audio_path,
             total_dur,
+            start_delay,
         )
 
         # ── 4. ASS subtitles ──────────────────────────────────────────────────
@@ -85,8 +93,7 @@ class AssemblyAgent:
             ass_path = ws / "tmp_subtitles.ass"
             # Whisper transcribes the audio including any SSML silence, so its timestamps
             # already reflect the true timing. Only offset by any external video delay.
-            subtitle_offset = _START_DELAY_S
-            _srt_to_ass(srt_path, ass_path, subtitle_offset, _SUBTITLE_WORDS)
+            _srt_to_ass(srt_path, ass_path, start_delay, _SUBTITLE_WORDS)
 
         # ── 5. Final encode ───────────────────────────────────────────────────
         final_path = ws / "final_video.mp4"
@@ -258,6 +265,22 @@ def _render_ken_burns(asset, output_path: Path) -> None:
     logger.debug("Ken Burns scene %d → %.1fs", asset.scene_id, duration)
 
 
+def _render_color_fallback(asset, output_path: Path) -> None:
+    """Generate a solid dark clip when neither a Veo clip nor image is available."""
+    duration = max(3.0, min(float(asset.duration_s), 20.0))
+    W, H = config.VIDEO_WIDTH, config.VIDEO_HEIGHT
+    subprocess.run([
+        "ffmpeg", "-y",
+        "-f", "lavfi", "-i", f"color=c=0x0f1428:size={W}x{H}:rate={config.VIDEO_FPS}",
+        "-t", str(duration),
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+        "-pix_fmt", "yuv420p",
+        "-loglevel", "error",
+        str(output_path),
+    ], check=True)
+    logger.debug("Color fallback scene %d → %.1fs", asset.scene_id, duration)
+
+
 def _concat_xfade(scene_paths: list[Path], durations: list[float], output_path: Path) -> None:
     """Concatenate scene clips with fade crossfades using ffmpeg xfade filter chain."""
     if len(scene_paths) == 1:
@@ -296,9 +319,9 @@ def _concat_xfade(scene_paths: list[Path], durations: list[float], output_path: 
     ], check=True)
 
 
-def _mix_audio(narr_path: Path, bg_path: Path, output_path: Path, total_dur: float) -> None:
+def _mix_audio(narr_path: Path, bg_path: Path, output_path: Path, total_dur: float, start_delay: float = 0.0) -> None:
     """Narration (with start delay) + looped background music, mixed with ffmpeg."""
-    delay_ms = int(_START_DELAY_S * 1000)
+    delay_ms = int(start_delay * 1000)
     fade_out_t = max(0.0, total_dur - _BG_FADE_S)
 
     leading = getattr(config, "TTS_LEADING_PAUSE_S", 0.0)
@@ -404,7 +427,7 @@ def _final_encode(
     fade_out_t = max(0.0, total_dur - _VIDEO_FADE_S)
 
     vf = (
-        f"tpad=start_duration={_START_DELAY_S}:start_mode=add:stop_duration={_END_DELAY_S}:stop_mode=clone:color=black,"
+        f"tpad=start_duration=0:start_mode=add:stop_duration={_END_DELAY_S}:stop_mode=clone:color=black,"
         f"fade=t=in:st=0:d={_VIDEO_FADE_S},"
         f"fade=t=out:st={fade_out_t:.3f}:d={_VIDEO_FADE_S}"
     )

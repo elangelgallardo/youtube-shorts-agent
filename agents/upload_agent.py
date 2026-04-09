@@ -19,7 +19,7 @@ from utils.state_store import register_published_topic
 logger = logging.getLogger(__name__)
 
 # YouTube quota: 1600 units per upload; default daily quota = 10,000 units
-_CHUNK_SIZE = 5 * 1024 * 1024  # 5 MB resumable upload chunks
+_CHUNK_SIZE = 50 * 1024 * 1024  # 50 MB resumable upload chunks
 
 
 class UploadAgent:
@@ -79,7 +79,8 @@ class UploadAgent:
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     temperature=0.7,
-                    max_output_tokens=512,
+                    max_output_tokens=2048,
+                    thinking_config=types.ThinkingConfig(thinking_level="high"),
                 ),
             )
             from utils.cost_tracker import record_gemini

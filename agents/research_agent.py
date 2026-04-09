@@ -42,12 +42,14 @@ class ResearchAgent:
     @with_retry(max_attempts=3, exceptions=(Exception,))
     def _research_with_grounding(self, job: VideoJob) -> ResearchContext:
         response = self._client.models.generate_content(
-            model=config.GEMINI_FLASH_MODEL,
+            model=config.GEMINI_RESEARCH_MODEL,
             contents=self._build_prompt(job),
             config=types.GenerateContentConfig(
                 tools=[types.Tool(google_search=types.GoogleSearch())],
                 temperature=0.2,
                 max_output_tokens=1024,
+                thinking_config=types.ThinkingConfig(thinking_level="medium"),
+                http_options=types.HttpOptions(timeout=180000),
             ),
         )
 
@@ -78,11 +80,13 @@ class ResearchAgent:
 
     def _research_fallback(self, job: VideoJob) -> ResearchContext:
         response = self._client.models.generate_content(
-            model=config.GEMINI_FLASH_MODEL,
+            model=config.GEMINI_RESEARCH_MODEL,
             contents=self._build_prompt(job),
             config=types.GenerateContentConfig(
                 temperature=0.3,
                 max_output_tokens=1024,
+                thinking_config=types.ThinkingConfig(thinking_level="medium"),
+                http_options=types.HttpOptions(timeout=180000),
             ),
         )
         from utils.cost_tracker import record_gemini

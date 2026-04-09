@@ -21,9 +21,9 @@ from utils.ssml_builder import build_ssml
 logger = logging.getLogger(__name__)
 
 _VISUAL_STYLE = (
-    "cinematic digital illustration, dark background, vivid colors, "
-    "highly detailed, main subject fills the frame vertically, portrait 9:16 composition, "
-    "no letterboxing no black bars no borders, no text no labels no diagrams"
+    "ilustración digital, colores vivos, "
+    "muy detallado, el sujeto principal llena el encuadre verticalmente, composición retrato 9:16, "
+    "sin letterboxing sin barras negras sin bordes"
 )
 
 
@@ -50,7 +50,8 @@ class ScriptAgent:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.9,
-                max_output_tokens=4096,
+                max_output_tokens=8192,
+                thinking_config=types.ThinkingConfig(thinking_level="medium"),
             ),
         )
         from utils.cost_tracker import record_gemini
@@ -99,8 +100,9 @@ class ScriptAgent:
             "Ejemplo: 'La luz viaja muy rápido. <break time=\"0.4s\"/> Tan rápido que da la vuelta a la Tierra siete veces en un segundo.'\n\n"
             f"Reglas para image_prompts:\n"
             f"- Exactamente {n} descripciones visuales, una por imagen del video\n"
-            "- Cada prompt describe una escena visual específica que ilustra esa parte de la narración\n"
-            "- Los prompts deben cubrir el arco completo del video de inicio a fin\n"
+            "- Cada prompt ilustra EXACTAMENTE lo que el narrador está diciendo en ese fragmento de la narración, no lo que viene después\n"
+            "- El prompt N debe corresponder al fragmento N de la narración (si el narrador habla de X en ese fragmento, el prompt muestra X)\n"
+            "- Los prompts deben cubrir el arco completo del video de inicio a fin, en el mismo orden que la narración\n"
             "- Solo descripción visual, sin texto ni instrucciones de estilo (eso se añade automáticamente)\n"
             "- Devuelve SOLO el objeto JSON, sin markdown ni comentarios"
         )
@@ -170,7 +172,7 @@ def _enrich_visual_prompt(prompt_text: str) -> str:
     clean = re.sub(r"<[^>]+>", "", prompt_text).strip()
     if not clean:
         return _VISUAL_STYLE
-    return f"Illustrate the following scene: {clean}. {_VISUAL_STYLE}"
+    return f"Ilustra la siguiente escena: {clean}. {_VISUAL_STYLE}"
 
 
 def _parse_json(text: str) -> dict:

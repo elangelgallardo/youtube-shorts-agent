@@ -217,6 +217,7 @@ class AnalyticsAgent:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.2,
+                thinking_config=types.ThinkingConfig(thinking_level="high"),
             ),
         )
         try:

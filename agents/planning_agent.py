@@ -14,7 +14,7 @@ import config
 from models.enums import VideoFormat
 from models.video_job import AnalyticsContext, VideoPlan
 from utils.retry import with_retry
-from utils.state_store import is_topic_duplicate, get_recent_published_titles
+from utils.state_store import is_topic_duplicate, get_recent_published_titles, get_recent_proposed_titles
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ class PlanningAgent:
     ) -> list[VideoPlan]:
         existing_titles = list(existing_titles or [])
         existing_titles += get_recent_published_titles(days=30)
+        existing_titles += get_recent_proposed_titles(n=10)
         plans: list[VideoPlan] = []
         attempts = 0
 
@@ -124,12 +125,13 @@ class PlanningAgent:
         )
 
         response = self._client.models.generate_content(
-            model=config.GEMINI_FLASH_MODEL,
+            model=config.GEMINI_PLANNING_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=1.1,
-                max_output_tokens=2048,
+                max_output_tokens=8192,
+                thinking_config=types.ThinkingConfig(thinking_level="medium"),
             ),
         )
         data = json.loads(response.text)

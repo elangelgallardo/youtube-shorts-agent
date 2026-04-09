@@ -40,6 +40,17 @@ def run_video_pipeline(job: VideoJob, upload: bool = True) -> VideoJob:
         stages.append((JobStatus.UPLOADING, _upload.run))
 
     for status, fn in stages:
+        # Before uploading, check that no images are fallbacks (failed generation)
+        if status == JobStatus.UPLOADING and job.images:
+            failed = [a.scene_id for a in job.images if a.is_fallback]
+            if failed:
+                msg = f"Upload skipped: {len(failed)} image(s) failed to generate (scenes {failed})"
+                job.errors.append(msg)
+                logger.warning("[%s] %s", job.job_id, msg)
+                job.status = JobStatus.DONE
+                save_job(job)
+                return job
+
         job.status = status
         save_job(job)
         try:

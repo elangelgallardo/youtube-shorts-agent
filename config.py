@@ -21,9 +21,11 @@ GOOGLE_API_KEY = os.environ["GOOGLE_API_KEY"]
 GOOGLE_TTS_API_KEY = os.environ.get("GOOGLE_TTS_API_KEY", os.environ.get("GOOGLE_API_KEY", ""))
 
 # Models
-GEMINI_FLASH_MODEL = "gemini-2.5-flash-lite"
+GEMINI_FLASH_MODEL = "gemini-3.1-pro-preview"
 GEMINI_PRO_MODEL = "gemini-3.1-pro-preview"
-IMAGE_GEN_MODEL = "gemini-2.5-flash-image"  # Nano Banana
+GEMINI_RESEARCH_MODEL = "gemini-3.1-pro-preview"
+GEMINI_PLANNING_MODEL = "gemini-3.1-pro-preview"
+IMAGE_GEN_MODEL = "gemini-3-pro-image-preview"
 
 # ── Google Cloud TTS ───────────────────────────────────────────────────────────
 TTS_VOICE_NAME = os.environ.get("TTS_VOICE", "es-US-Chirp3-HD-Fenrir")
@@ -51,7 +53,7 @@ BRAND_COLORS = "deep navy blue and electric yellow accent, clean white backgroun
 
 # ── Pipeline settings ──────────────────────────────────────────────────────────
 VIDEOS_PER_DAY = 10
-ANALYTICS_LOOKBACK_DAYS = 30
+ANALYTICS_LOOKBACK_DAYS = 2
 ANALYTICS_TOP_N_VIDEOS = 20
 
 # Script / video dimensions

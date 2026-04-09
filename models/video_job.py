@@ -103,6 +103,7 @@ class ImageAsset:
     path: str = ""
     duration_s: float = 10.0
     veo_clip_path: str = ""  # optional Veo 3 video clip for this scene
+    is_fallback: bool = False  # True when image generation failed and a placeholder was used
 
 
 @dataclass
@@ -151,7 +152,7 @@ class VideoJob:
     video: VideoAsset = field(default_factory=VideoAsset)
     upload: UploadResult = field(default_factory=UploadResult)
     costs: dict = field(default_factory=dict)  # usage tracking per agent
-    use_veo: bool = True  # whether to generate a Veo 3 clip for scene 0
+    use_veo: bool = False  # whether to generate a Veo 3 clip for scene 0
 
     # ── Serialization ──────────────────────────────────────────────────────
 
@@ -177,6 +178,7 @@ class VideoJob:
         job.scheduled_upload_at = data.get("scheduled_upload_at", "")
         job.retry_count = data.get("retry_count", 0)
         job.errors = data.get("errors", [])
+        job.use_veo = data.get("use_veo", False)
 
         if ac := data.get("analytics_context"):
             metrics = [VideoMetric(**m) for m in ac.get("raw_metrics", [])]

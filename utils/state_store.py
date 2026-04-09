@@ -41,6 +41,14 @@ CREATE TABLE IF NOT EXISTS pending_plans (
     created_at TEXT NOT NULL,
     plans_json TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS proposed_ideas (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    proposed_at    TEXT NOT NULL,
+    title_concept  TEXT NOT NULL,
+    topic          TEXT NOT NULL,
+    angle          TEXT NOT NULL
+);
 """
 
 
@@ -240,9 +248,32 @@ def clear_pending_plans() -> None:
         conn.commit()
 
 
+# ── Proposed ideas memory ───────────────────────────────────────────────────
+
+def save_proposed_ideas(plans: list) -> None:
+    """Persist all proposed ideas so the planner can avoid repeating them."""
+    now = datetime.utcnow().isoformat()
+    with _connect() as conn:
+        for plan in plans:
+            conn.execute(
+                "INSERT INTO proposed_ideas (proposed_at, title_concept, topic, angle) VALUES (?, ?, ?, ?)",
+                (now, plan.title_concept, plan.topic, plan.angle),
+            )
+        conn.commit()
+
+
+def get_recent_proposed_titles(n: int = 10) -> list[str]:
+    """Return the title_concepts of the last n proposed ideas."""
+    with _connect() as conn:
+        rows = conn.execute(
+            "SELECT title_concept FROM proposed_ideas ORDER BY id DESC LIMIT ?", (n,)
+        ).fetchall()
+    return [r["title_concept"] for r in rows]
+
+
 # ── Job creation ────────────────────────────────────────────────────────────
 
-def create_job(plan, use_veo: bool = True) -> "VideoJob":
+def create_job(plan, use_veo: bool = False) -> "VideoJob":
     """Create a VideoJob from a VideoPlan, save it to DB immediately, and return it.
 
     Always use this instead of VideoJob() directly for interactive sessions —

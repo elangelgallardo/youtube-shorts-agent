@@ -23,16 +23,24 @@ class MediaAgent:
     def __init__(self):
         self._client = genai.Client(api_key=config.GOOGLE_API_KEY)
 
-    def run(self, job: VideoJob) -> VideoJob:
+    def run(self, job: VideoJob, generate_images: bool = True) -> VideoJob:
         job.workspace_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info("[%s] Generating audio + images in parallel…", job.job_id)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-            audio_future = pool.submit(self._generate_audio, job)
-            images_future = pool.submit(self._generate_images, job)
-
-            audio_asset = audio_future.result()
-            image_assets = images_future.result()
+        if generate_images:
+            logger.info("[%s] Generating audio + images in parallel…", job.job_id)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                audio_future = pool.submit(self._generate_audio, job)
+                images_future = pool.submit(self._generate_images, job)
+                audio_asset = audio_future.result()
+                image_assets = images_future.result()
+        else:
+            logger.info("[%s] Generating audio only (images skipped)…", job.job_id)
+            audio_asset = self._generate_audio(job)
+            # Create placeholder assets — VeoAgent will fill in veo_clip_path
+            image_assets = [
+                ImageAsset(scene_id=s.scene_id, path="", duration_s=float(s.duration_hint_s))
+                for s in job.script.scenes
+            ]
 
         # Generate SRT using Whisper word-level timestamps
         srt_path = job.workspace_dir / "subtitles.srt"
@@ -176,7 +184,7 @@ class MediaAgent:
         assets: list[ImageAsset] = []
         client = genai.Client(api_key=config.GOOGLE_API_KEY)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
             futures = {
                 pool.submit(self._generate_one_image, client, scene, job): scene.scene_id
                 for scene in job.script.scenes
@@ -353,6 +361,7 @@ class MediaAgent:
             scene_id=scene_id,
             path=str(out_path),
             duration_s=float(scene.duration_hint_s if scene else 10),
+            is_fallback=True,
         )
 
 
